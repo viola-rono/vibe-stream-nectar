@@ -1,0 +1,111 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { AppShell } from "@/components/AppShell";
+import { PostCard, type FeedPost } from "@/components/PostCard";
+import { Image as ImageIcon, Video, Smile, ImageOff } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+
+export const Route = createFileRoute("/_authenticated/home")({
+  head: () => ({ meta: [{ title: "Home — Embr" }] }),
+  component: HomePage,
+});
+
+async function fetchFeed(): Promise<FeedPost[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select(
+      "id,user_id,content,media_urls,created_at,likes_count,comments_count,profiles!posts_user_id_fkey(username,full_name,avatar_url)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return (data ?? []).map((row) => {
+    const r = row as unknown as Omit<FeedPost, "author"> & {
+      profiles: FeedPost["author"] | FeedPost["author"][] | null;
+    };
+    const author = Array.isArray(r.profiles) ? r.profiles[0] ?? null : r.profiles ?? null;
+    return { ...r, author };
+  });
+}
+
+function HomePage() {
+  const { user } = useAuth();
+  const { data, isLoading } = useQuery({
+    queryKey: ["feed"],
+    queryFn: fetchFeed,
+    staleTime: 30_000,
+  });
+
+  return (
+    <AppShell>
+      <div className="card-soft mx-4 mt-3 p-4">
+        <Link
+          to="/create"
+          className="flex items-center gap-3"
+          aria-label="Create a post"
+        >
+          <div className="size-10 rounded-full brand-gradient grid place-items-center text-white font-bold shrink-0">
+            {(user?.user_metadata?.username ?? user?.email ?? "?")
+              .toString()
+              .charAt(0)
+              .toUpperCase()}
+          </div>
+          <div className="flex-1 rounded-full bg-muted px-4 py-2.5 text-sm text-muted-foreground">
+            Share your thoughts…
+          </div>
+        </Link>
+        <div className="grid grid-cols-3 mt-3 pt-3 border-t border-border/60 text-sm">
+          <Link to="/create" className="flex items-center justify-center gap-2 py-1.5 text-primary font-medium">
+            <ImageIcon className="size-4" /> Photo
+          </Link>
+          <Link to="/create" className="flex items-center justify-center gap-2 py-1.5 text-primary font-medium">
+            <Video className="size-4" /> Video
+          </Link>
+          <Link to="/create" className="flex items-center justify-center gap-2 py-1.5 text-primary font-medium">
+            <Smile className="size-4" /> Feeling
+          </Link>
+        </div>
+      </div>
+
+      {isLoading && (
+        <div className="space-y-3 mt-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="card-soft mx-4 p-4 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-1/3 bg-muted rounded" />
+                  <div className="h-3 w-1/4 bg-muted rounded" />
+                </div>
+              </div>
+              <div className="h-40 mt-3 bg-muted rounded-lg" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && (!data || data.length === 0) && (
+        <div className="mt-12 px-6 text-center">
+          <div className="size-20 mx-auto rounded-2xl bg-muted grid place-items-center text-muted-foreground">
+            <ImageOff className="size-8" />
+          </div>
+          <h2 className="mt-4 text-lg font-bold">No posts yet</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Follow people to see their posts here, or be the first to share something!
+          </p>
+          <Link
+            to="/create"
+            className="inline-block mt-6 px-6 py-3 rounded-xl brand-gradient text-white font-semibold shadow-md shadow-primary/20"
+          >
+            Create your first post
+          </Link>
+        </div>
+      )}
+
+      {data?.map((post) => (
+        <PostCard key={post.id} post={post} currentUserId={user?.id} />
+      ))}
+    </AppShell>
+  );
+}
