@@ -1,7 +1,15 @@
-import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, Link as LinkIcon, Flag, EyeOff, BellOff } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type FeedPost = {
   id: string;
@@ -35,6 +43,10 @@ function timeAgo(iso: string | null) {
 export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserId?: string }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes_count ?? 0);
+  const [saved, setSaved] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const qc = useQueryClient();
+  const isOwner = !!currentUserId && currentUserId === post.user_id;
 
   async function toggleLike() {
     if (!currentUserId) return;
@@ -62,6 +74,32 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
   const name = post.author?.full_name || post.author?.username || "Someone";
   const handle = post.author?.username ? `@${post.author.username}` : "";
 
+  async function deletePost() {
+    if (!isOwner) return;
+    if (!confirm("Delete this post? This can't be undone.")) return;
+    setHidden(true);
+    const { error } = await supabase.from("posts").delete().eq("id", post.id);
+    if (error) {
+      setHidden(false);
+      toast.error("Couldn't delete post");
+      return;
+    }
+    toast.success("Post deleted");
+    qc.invalidateQueries({ queryKey: ["feed"] });
+  }
+
+  async function copyLink() {
+    const url = `${window.location.origin}/post/${post.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  }
+
+  if (hidden) return null;
+
   return (
     <article className="card-soft mx-4 my-3 overflow-hidden">
       <header className="flex items-center gap-3 p-4">
@@ -82,6 +120,50 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
             {handle} · {timeAgo(post.created_at)}
           </p>
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label="Post options"
+            className="size-9 -mr-1 rounded-full grid place-items-center hover:bg-muted transition"
+          >
+            <MoreHorizontal className="size-5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => setSaved((s) => !s)}>
+              <Bookmark className="size-4 mr-2" /> {saved ? "Unsave post" : "Save post"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={copyLink}>
+              <LinkIcon className="size-4 mr-2" /> Copy link
+            </DropdownMenuItem>
+            {!isOwner && (
+              <>
+                <DropdownMenuItem onClick={() => { setHidden(true); toast("Post hidden"); }}>
+                  <EyeOff className="size-4 mr-2" /> Hide post
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast("Notifications muted")}>
+                  <BellOff className="size-4 mr-2" /> Mute notifications
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => toast.success("Report submitted")}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Flag className="size-4 mr-2" /> Report
+                </DropdownMenuItem>
+              </>
+            )}
+            {isOwner && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={deletePost}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="size-4 mr-2" /> Delete post
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {post.content && (
