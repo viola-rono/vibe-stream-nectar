@@ -83,10 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Embr is a fast, modern social app for sharing moments, photos and conversations with the people you care about." },
       { name: "author", content: "Embr" },
       { property: "og:title", content: "Embr — share the spark" },
-      { property: "og:description", content: "A fast, modern social app for sharing moments, photos and conversations." },
+      { property: "og:description", content: "Embr is a fast, modern social app for sharing moments, photos and conversations with the people you care about." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Embr" },
+      { name: "twitter:title", content: "Embr — share the spark" },
+      { name: "twitter:description", content: "Embr is a fast, modern social app for sharing moments, photos and conversations with the people you care about." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5757df33-3e91-49cc-a58a-e9965022ddde/id-preview-2bd290c7--59adcea3-520c-4cd0-a186-f9679ea6a19f.lovable.app-1782743033842.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5757df33-3e91-49cc-a58a-e9965022ddde/id-preview-2bd290c7--59adcea3-520c-4cd0-a186-f9679ea6a19f.lovable.app-1782743033842.png" },
     ],
     links: [
       {
