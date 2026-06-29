@@ -12,21 +12,28 @@ export const Route = createFileRoute("/_authenticated/home")({
 });
 
 async function fetchFeed(): Promise<FeedPost[]> {
-  const { data, error } = await supabase
+  const { data: posts, error } = await supabase
     .from("posts")
-    .select(
-      "id,user_id,content,media_urls,created_at,likes_count,comments_count,profiles!posts_user_id_fkey(username,full_name,avatar_url)",
-    )
+    .select("id,user_id,content,media_urls,created_at,likes_count,comments_count")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw error;
-  return (data ?? []).map((row) => {
-    const r = row as unknown as Omit<FeedPost, "author"> & {
-      profiles: FeedPost["author"] | FeedPost["author"][] | null;
-    };
-    const author = Array.isArray(r.profiles) ? r.profiles[0] ?? null : r.profiles ?? null;
-    return { ...r, author };
-  });
+  const rows = posts ?? [];
+  const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+  let authorsById = new Map<string, FeedPost["author"]>();
+  if (ids.length) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id,username,full_name,avatar_url")
+      .in("id", ids);
+    authorsById = new Map(
+      (profiles ?? []).map((p: any) => [
+        p.id,
+        { username: p.username, full_name: p.full_name, avatar_url: p.avatar_url },
+      ]),
+    );
+  }
+  return rows.map((r) => ({ ...r, author: authorsById.get(r.user_id) ?? null }));
 }
 
 function HomePage() {
