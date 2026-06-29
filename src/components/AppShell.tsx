@@ -11,13 +11,19 @@ type Props = {
   showHeader?: boolean;
 };
 
-const navItems = [
+type NavItem = {
+  to: "/home" | "/explore" | "/create" | "/alerts" | "/hub";
+  label: string;
+  icon: typeof Home;
+  primary?: boolean;
+};
+const navItems: NavItem[] = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/explore", label: "Explore", icon: Compass },
   { to: "/create", label: "Create", icon: Plus, primary: true },
   { to: "/alerts", label: "Alerts", icon: Bell },
   { to: "/hub", label: "Hub", icon: LayoutGrid },
-] as const;
+];
 
 export function AppShell({ title = "Embr", children, headerRight, showHeader = true }: Props) {
   const location = useLocation();
