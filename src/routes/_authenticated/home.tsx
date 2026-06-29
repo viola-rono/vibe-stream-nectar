@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { PostCard, type FeedPost } from "@/components/PostCard";
 import { Image as ImageIcon, Video, Smile, ImageOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfile } from "@/hooks/use-profile";
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({ meta: [{ title: "Home — Embr" }] }),
@@ -38,6 +39,7 @@ async function fetchFeed(): Promise<FeedPost[]> {
 
 function HomePage() {
   const { user } = useAuth();
+  const { data: profile } = useProfile();
   const { data, isLoading } = useQuery({
     queryKey: ["feed"],
     queryFn: fetchFeed,
@@ -52,11 +54,15 @@ function HomePage() {
           className="flex items-center gap-3"
           aria-label="Create a post"
         >
-          <div className="size-10 rounded-full brand-gradient grid place-items-center text-white font-bold shrink-0">
-            {(user?.user_metadata?.username ?? user?.email ?? "?")
-              .toString()
-              .charAt(0)
-              .toUpperCase()}
+          <div className="size-10 rounded-full brand-gradient grid place-items-center text-white font-bold shrink-0 overflow-hidden">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="size-10 object-cover" />
+            ) : (
+              (profile?.full_name ?? profile?.username ?? user?.email ?? "?")
+                .toString()
+                .charAt(0)
+                .toUpperCase()
+            )}
           </div>
           <div className="flex-1 rounded-full bg-muted px-4 py-2.5 text-sm text-muted-foreground">
             Share your thoughts…
