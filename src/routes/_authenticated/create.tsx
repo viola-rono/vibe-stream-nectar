@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { ArrowLeft, Globe, Image as ImageIcon, X, Smile, MapPin, Users, Music, Hash, Palette, Crown, Loader2 } from "lucide-react";
+import { ArrowLeft, Globe, Image as ImageIcon, X, Smile, MapPin, Users, Music, Hash, Palette, Crown, Loader2, Lock, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfile } from "@/hooks/use-profile";
 import { uploadPostMedia, compressImage } from "@/lib/upload";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_authenticated/create")({
   head: () => ({ meta: [{ title: "Create — Embr" }] }),
@@ -18,13 +20,27 @@ function CreatePage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { data: profile } = useProfile();
   const fileInput = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [audience, setAudience] = useState<"public" | "followers" | "private">("public");
 
-  const username = (user?.user_metadata?.username as string) ?? user?.email?.split("@")[0] ?? "you";
+  const displayName =
+    profile?.full_name ??
+    profile?.username ??
+    (user?.user_metadata?.username as string) ??
+    user?.email?.split("@")[0] ??
+    "you";
+
+  const audienceOpts = [
+    { key: "public", label: "Public", desc: "Anyone on Embr", icon: Globe },
+    { key: "followers", label: "Followers", desc: "People who follow you", icon: Users },
+    { key: "private", label: "Only me", desc: "Just for you", icon: Lock },
+  ] as const;
+  const currentAudience = audienceOpts.find((a) => a.key === audience)!;
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []).slice(0, 4 - files.length);
@@ -56,7 +72,7 @@ function CreatePage() {
         content: text || null,
         media_urls: media_urls.length ? media_urls : null,
         media_type: media_urls.length ? "image" : null,
-        visibility: "public",
+        visibility: audience,
         status: "published",
       });
       if (error) throw error;
@@ -98,14 +114,32 @@ function CreatePage() {
       <main className="mx-auto w-full max-w-2xl px-3 pt-3 pb-32 space-y-3">
         <section className="card-soft p-4">
           <div className="flex items-center gap-3">
-            <div className="size-12 rounded-full brand-gradient grid place-items-center text-white font-bold ring-2 ring-primary/30">
-              {username.charAt(0).toUpperCase()}
+            <div className="size-12 rounded-full brand-gradient grid place-items-center text-white font-bold ring-2 ring-primary/30 overflow-hidden shrink-0">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="size-12 object-cover" />
+              ) : (
+                displayName.charAt(0).toUpperCase()
+              )}
             </div>
             <div>
-              <p className="font-bold">{username}</p>
-              <button className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border border-border bg-background">
-                <Globe className="size-3.5" /> Public
-              </button>
+              <p className="font-bold">{displayName}</p>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border border-border bg-background hover:bg-muted transition">
+                  <currentAudience.icon className="size-3.5" /> {currentAudience.label}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-60">
+                  {audienceOpts.map((opt) => (
+                    <DropdownMenuItem key={opt.key} onClick={() => setAudience(opt.key)} className="gap-3">
+                      <opt.icon className="size-4" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{opt.label}</p>
+                        <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                      </div>
+                      {audience === opt.key && <Check className="size-4 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
