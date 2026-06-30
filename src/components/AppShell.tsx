@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, Compass, Bell, LayoutGrid, Plus, MessageCircle, Search, Flame } from "lucide-react";
+import { Home, Compass, Bell, User as UserIcon, Plus, MessageCircle, Search, Flame } from "lucide-react";
 import { type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useProfile } from "@/hooks/use-profile";
 
 type Props = {
   title?: string;
@@ -11,23 +12,19 @@ type Props = {
   showHeader?: boolean;
 };
 
-type NavItem = {
-  to: "/home" | "/explore" | "/create" | "/alerts" | "/hub";
-  label: string;
-  icon: typeof Home;
-  primary?: boolean;
-};
-const navItems: NavItem[] = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/explore", label: "Explore", icon: Compass },
-  { to: "/create", label: "Create", icon: Plus, primary: true },
-  { to: "/alerts", label: "Alerts", icon: Bell },
-  { to: "/hub", label: "Hub", icon: LayoutGrid },
-];
-
 export function AppShell({ title = "Embr", children, headerRight, showHeader = true }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: profile } = useProfile();
+  const profileTo = profile?.username ? `/u/${profile.username}` : "/hub";
+
+  const navItems = [
+    { to: "/home", label: "Home", icon: Home },
+    { to: "/explore", label: "Explore", icon: Compass },
+    { to: "/create", label: "Create", icon: Plus, primary: true },
+    { to: "/alerts", label: "Alerts", icon: Bell },
+    { to: profileTo, label: "Profile", icon: UserIcon },
+  ] as const;
 
   return (
     <div className="min-h-dvh bg-background flex flex-col">
@@ -72,8 +69,8 @@ export function AppShell({ title = "Embr", children, headerRight, showHeader = t
         <ul className="mx-auto max-w-2xl grid grid-cols-5 items-end h-16">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = location.pathname === item.to;
-            if (item.primary) {
+            const active = location.pathname === item.to || (item.label === "Profile" && location.pathname.startsWith("/u/"));
+            if ("primary" in item && item.primary) {
               return (
                 <li key={item.to} className="flex justify-center -mt-6">
                   <Link
