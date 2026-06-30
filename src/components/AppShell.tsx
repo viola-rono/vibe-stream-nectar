@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, Compass, Bell, LayoutGrid, Plus, MessageCircle, Search, Flame } from "lucide-react";
+import { Home, Compass, Bell, User as UserIcon, Plus, MessageCircle, Search, Flame } from "lucide-react";
 import { type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useProfile } from "@/hooks/use-profile";
 
 type Props = {
   title?: string;
@@ -11,23 +12,11 @@ type Props = {
   showHeader?: boolean;
 };
 
-type NavItem = {
-  to: "/home" | "/explore" | "/create" | "/alerts" | "/hub";
-  label: string;
-  icon: typeof Home;
-  primary?: boolean;
-};
-const navItems: NavItem[] = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/explore", label: "Explore", icon: Compass },
-  { to: "/create", label: "Create", icon: Plus, primary: true },
-  { to: "/alerts", label: "Alerts", icon: Bell },
-  { to: "/hub", label: "Hub", icon: LayoutGrid },
-];
-
 export function AppShell({ title = "Embr", children, headerRight, showHeader = true }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: profile } = useProfile();
+  const myUsername = profile?.username ?? "";
 
   return (
     <div className="min-h-dvh bg-background flex flex-col">
@@ -70,36 +59,36 @@ export function AppShell({ title = "Embr", children, headerRight, showHeader = t
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto max-w-2xl grid grid-cols-5 items-end h-16">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = location.pathname === item.to;
-            if (item.primary) {
-              return (
-                <li key={item.to} className="flex justify-center -mt-6">
-                  <Link
-                    to={item.to}
-                    aria-label={item.label}
-                    className="size-14 rounded-full brand-gradient text-white grid place-items-center shadow-lg shadow-primary/30 active:scale-95 transition"
-                  >
-                    <Icon className="size-6" strokeWidth={2.5} />
-                  </Link>
-                </li>
-              );
-            }
-            return (
-              <li key={item.to} className="flex">
-                <Link
-                  to={item.to}
-                  className={`flex-1 flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition ${
-                    active ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="size-5" />
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
+          <NavTab to="/home" label="Home" icon={Home} active={location.pathname === "/home"} />
+          <NavTab to="/explore" label="Explore" icon={Compass} active={location.pathname.startsWith("/explore")} />
+          <li className="flex justify-center -mt-6">
+            <Link
+              to="/create"
+              aria-label="Create"
+              className="size-14 rounded-full brand-gradient text-white grid place-items-center shadow-lg shadow-primary/30 active:scale-95 transition"
+            >
+              <Plus className="size-6" strokeWidth={2.5} />
+            </Link>
+          </li>
+          <NavTab to="/alerts" label="Alerts" icon={Bell} active={location.pathname.startsWith("/alerts")} />
+          {myUsername ? (
+            <li className="flex">
+              <Link
+                to="/u/$username"
+                params={{ username: myUsername }}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition ${
+                  location.pathname.startsWith("/u/") || location.pathname === "/profile"
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <UserIcon className="size-5" />
+                <span>Profile</span>
+              </Link>
+            </li>
+          ) : (
+            <NavTab to="/hub" label="Profile" icon={UserIcon} active={location.pathname === "/hub"} />
+          )}
         </ul>
       </nav>
     </div>
@@ -112,3 +101,29 @@ export async function signOut(then: () => void) {
 }
 
 export { Button };
+
+function NavTab({
+  to,
+  label,
+  icon: Icon,
+  active,
+}: {
+  to: "/home" | "/explore" | "/alerts" | "/hub";
+  label: string;
+  icon: typeof Home;
+  active: boolean;
+}) {
+  return (
+    <li className="flex">
+      <Link
+        to={to}
+        className={`flex-1 flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition ${
+          active ? "text-primary" : "text-muted-foreground"
+        }`}
+      >
+        <Icon className="size-5" />
+        <span>{label}</span>
+      </Link>
+    </li>
+  );
+}

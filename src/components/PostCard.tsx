@@ -1,4 +1,5 @@
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, Link as LinkIcon, Flag, EyeOff, BellOff } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -40,7 +41,15 @@ function timeAgo(iso: string | null) {
   return new Date(iso).toLocaleDateString();
 }
 
-export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserId?: string }) {
+export function PostCard({
+  post,
+  currentUserId,
+  onImageClick,
+}: {
+  post: FeedPost;
+  currentUserId?: string;
+  onImageClick?: (url: string) => void;
+}) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes_count ?? 0);
   const [saved, setSaved] = useState(false);
@@ -103,7 +112,11 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
   return (
     <article className="card-soft mx-4 my-3 overflow-hidden">
       <header className="flex items-center gap-3 p-4">
-        <div className="size-10 rounded-full brand-gradient grid place-items-center text-white font-bold shrink-0">
+        <Link
+          to="/u/$username"
+          params={{ username: post.author?.username ?? "" }}
+          className="size-10 rounded-full brand-gradient grid place-items-center text-white font-bold shrink-0 overflow-hidden"
+        >
           {post.author?.avatar_url ? (
             <img
               src={post.author.avatar_url}
@@ -113,13 +126,17 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
           ) : (
             name.charAt(0).toUpperCase()
           )}
-        </div>
-        <div className="min-w-0 flex-1">
+        </Link>
+        <Link
+          to="/u/$username"
+          params={{ username: post.author?.username ?? "" }}
+          className="min-w-0 flex-1"
+        >
           <p className="font-semibold text-sm truncate">{name}</p>
           <p className="text-xs text-muted-foreground truncate">
             {handle} · {timeAgo(post.created_at)}
           </p>
-        </div>
+        </Link>
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label="Post options"
@@ -179,13 +196,19 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
           }`}
         >
           {post.media_urls.slice(0, 4).map((url, i) => (
-            <img
+            <button
               key={i}
-              src={url}
-              alt=""
-              loading="lazy"
-              className="w-full aspect-square object-cover"
-            />
+              type="button"
+              onClick={() => onImageClick?.(url)}
+              className="block w-full aspect-square overflow-hidden"
+            >
+              <img
+                src={url}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover"
+              />
+            </button>
           ))}
         </div>
       )}
