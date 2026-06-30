@@ -6,6 +6,7 @@ import { PostCard, type FeedPost } from "@/components/PostCard";
 import { Image as ImageIcon, Video, Smile, ImageOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({ meta: [{ title: "Home — Embr" }] }),
@@ -40,6 +41,7 @@ async function fetchFeed(): Promise<FeedPost[]> {
 function HomePage() {
   const { user } = useAuth();
   const { data: profile } = useProfile();
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ["feed"],
     queryFn: fetchFeed,
@@ -117,8 +119,23 @@ function HomePage() {
       )}
 
       {data?.map((post) => (
-        <PostCard key={post.id} post={post} currentUserId={user?.id} />
+        <PostCard
+          key={post.id}
+          post={post}
+          currentUserId={user?.id}
+          onImageClick={(u) => setLightbox(u)}
+        />
       ))}
+
+      {lightbox && (
+        <button
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-50 bg-black/95 grid place-items-center p-4"
+          aria-label="Close image"
+        >
+          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain" />
+        </button>
+      )}
     </AppShell>
   );
 }
