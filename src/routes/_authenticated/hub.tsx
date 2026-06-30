@@ -18,7 +18,7 @@ function HubPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const username = profile?.username ?? (user?.user_metadata?.username as string) ?? user?.email?.split("@")[0] ?? "you";
-  const profileTo = profile?.username ? `/u/${profile.username}` : "/profile";
+  const hasUsername = !!profile?.username;
 
   async function signOut() {
     await qc.cancelQueries();
@@ -30,27 +30,28 @@ function HubPage() {
 
   return (
     <AppShell title="Hub">
-      <Link to={profileTo} className="card-soft mx-4 mt-3 p-4 flex items-center gap-4">
-        <div className="size-14 rounded-full brand-gradient grid place-items-center text-white text-xl font-bold overflow-hidden">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="size-14 object-cover" />
-          ) : (
-            username.charAt(0).toUpperCase()
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-base truncate">{profile?.full_name ?? username}</p>
-          <p className="text-xs text-muted-foreground truncate">@{username}</p>
-        </div>
-        <ChevronRight className="size-5 text-muted-foreground" />
-      </Link>
+      {hasUsername ? (
+        <Link
+          to="/u/$username"
+          params={{ username: profile!.username! }}
+          className="card-soft mx-4 mt-3 p-4 flex items-center gap-4"
+        >
+          <ProfileHeader profile={profile} username={username} />
+        </Link>
+      ) : (
+        <Link to="/profile" className="card-soft mx-4 mt-3 p-4 flex items-center gap-4">
+          <ProfileHeader profile={profile} username={username} />
+        </Link>
+      )}
 
       <div className="card-soft mx-4 mt-3 divide-y divide-border/60">
-        <Link to={profileTo} className="flex items-center gap-3 p-4">
-          <div className="size-10 rounded-full bg-muted grid place-items-center"><UserIcon className="size-5" /></div>
-          <span className="flex-1 font-medium">My profile</span>
-          <ChevronRight className="size-5 text-muted-foreground" />
-        </Link>
+        {hasUsername ? (
+          <Link to="/u/$username" params={{ username: profile!.username! }} className="flex items-center gap-3 p-4">
+            <div className="size-10 rounded-full bg-muted grid place-items-center"><UserIcon className="size-5" /></div>
+            <span className="flex-1 font-medium">My profile</span>
+            <ChevronRight className="size-5 text-muted-foreground" />
+          </Link>
+        ) : null}
         <Link to="/profile" className="flex items-center gap-3 p-4">
           <div className="size-10 rounded-full bg-muted grid place-items-center"><UserIcon className="size-5" /></div>
           <span className="flex-1 font-medium">Edit profile</span>
@@ -80,5 +81,30 @@ function HubPage() {
         <LogOut className="size-5" /> Sign out
       </button>
     </AppShell>
+  );
+}
+
+function ProfileHeader({
+  profile,
+  username,
+}: {
+  profile: { full_name: string | null; username: string | null; avatar_url: string | null } | null | undefined;
+  username: string;
+}) {
+  return (
+    <>
+        <div className="size-14 rounded-full brand-gradient grid place-items-center text-white text-xl font-bold overflow-hidden">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="size-14 object-cover" />
+          ) : (
+            username.charAt(0).toUpperCase()
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-base truncate">{profile?.full_name ?? username}</p>
+          <p className="text-xs text-muted-foreground truncate">@{username}</p>
+        </div>
+        <ChevronRight className="size-5 text-muted-foreground" />
+    </>
   );
 }
