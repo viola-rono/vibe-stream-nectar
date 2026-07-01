@@ -21,6 +21,7 @@ import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
+import { Route as AuthenticatedTTagRouteImport } from './routes/_authenticated/t.$tag'
 import { Route as AuthenticatedPPostIdRouteImport } from './routes/_authenticated/p.$postId'
 import { Route as AuthenticatedUUsernameFollowingRouteImport } from './routes/_authenticated/u.$username.following'
 import { Route as AuthenticatedUUsernameFollowersRouteImport } from './routes/_authenticated/u.$username.followers'
@@ -84,6 +85,11 @@ const AuthenticatedUUsernameRoute = AuthenticatedUUsernameRouteImport.update({
   path: '/u/$username',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTTagRoute = AuthenticatedTTagRouteImport.update({
+  id: '/t/$tag',
+  path: '/t/$tag',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPPostIdRoute = AuthenticatedPPostIdRouteImport.update({
   id: '/p/$postId',
   path: '/p/$postId',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/p/$postId': typeof AuthenticatedPPostIdRoute
+  '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/u/$username/followers': typeof AuthenticatedUUsernameFollowersRoute
   '/u/$username/following': typeof AuthenticatedUUsernameFollowingRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/p/$postId': typeof AuthenticatedPPostIdRoute
+  '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/u/$username/followers': typeof AuthenticatedUUsernameFollowersRoute
   '/u/$username/following': typeof AuthenticatedUUsernameFollowingRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/p/$postId': typeof AuthenticatedPPostIdRoute
+  '/_authenticated/t/$tag': typeof AuthenticatedTTagRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/_authenticated/u/$username/followers': typeof AuthenticatedUUsernameFollowersRoute
   '/_authenticated/u/$username/following': typeof AuthenticatedUUsernameFollowingRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/p/$postId'
+    | '/t/$tag'
     | '/u/$username'
     | '/u/$username/followers'
     | '/u/$username/following'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/p/$postId'
+    | '/t/$tag'
     | '/u/$username'
     | '/u/$username/followers'
     | '/u/$username/following'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/settings'
     | '/_authenticated/p/$postId'
+    | '/_authenticated/t/$tag'
     | '/_authenticated/u/$username'
     | '/_authenticated/u/$username/followers'
     | '/_authenticated/u/$username/following'
@@ -296,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUUsernameRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/t/$tag': {
+      id: '/_authenticated/t/$tag'
+      path: '/t/$tag'
+      fullPath: '/t/$tag'
+      preLoaderRoute: typeof AuthenticatedTTagRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/p/$postId': {
       id: '/_authenticated/p/$postId'
       path: '/p/$postId'
@@ -346,6 +365,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedPPostIdRoute: typeof AuthenticatedPPostIdRoute
+  AuthenticatedTTagRoute: typeof AuthenticatedTTagRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRouteWithChildren
 }
 
@@ -359,6 +379,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedPPostIdRoute: AuthenticatedPPostIdRoute,
+  AuthenticatedTTagRoute: AuthenticatedTTagRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRouteWithChildren,
 }
 
