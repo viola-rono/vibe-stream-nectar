@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { FollowButton } from "@/components/FollowButton";
+import { getOrCreateDirectConversation } from "@/lib/messages";
+import { toast } from "sonner";
 import {
   ArrowLeft, MoreHorizontal, Bell, CheckCircle2, MapPin, Calendar,
   Grid3x3, Film, Bookmark, MessageCircle, Settings, Plus, Images,
@@ -184,9 +186,20 @@ function ProfileViewPage() {
           ) : (
             <>
               <FollowButton targetUserId={profile.id} className="h-11" onChange={() => qc.invalidateQueries({ queryKey: ["profile-by-username", username] })} />
-              <Link to="/inbox" className="h-11 grid place-items-center rounded-xl bg-muted font-semibold text-sm gap-2 inline-flex">
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  try {
+                    const id = await getOrCreateDirectConversation(user.id, profile.id);
+                    navigate({ to: "/m/$conversationId", params: { conversationId: id } });
+                  } catch (e: any) {
+                    toast.error(e?.message ?? "Couldn't open chat");
+                  }
+                }}
+                className="h-11 grid place-items-center rounded-xl bg-muted font-semibold text-sm gap-2 inline-flex"
+              >
                 <MessageCircle className="size-4" /> Message
-              </Link>
+              </button>
             </>
           )}
           <Link to="/create" aria-label="Create" className="size-11 grid place-items-center rounded-xl brand-gradient text-white">

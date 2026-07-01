@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { RichText } from "@/lib/rich-text";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -185,7 +186,7 @@ export function PostCard({
 
       {post.content && (
         <p className="px-4 pb-3 text-[15px] leading-relaxed whitespace-pre-wrap break-words">
-          {post.content}
+          <RichText text={post.content} />
         </p>
       )}
 
