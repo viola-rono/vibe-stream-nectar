@@ -1,6 +1,6 @@
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, Link as LinkIcon, Flag, EyeOff, BellOff } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, Link as LinkIcon, Flag, EyeOff, BellOff, MapPin, Music, Play, Pause } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +21,11 @@ export type FeedPost = {
   created_at: string | null;
   likes_count: number | null;
   comments_count: number | null;
+  feeling?: { emoji: string; label: string } | null;
+  location?: { name: string } | null;
+  song?: { title: string; artist: string; artwork: string; preview: string } | null;
+  theme?: string | null;
+  hashtags?: string[] | null;
   author: {
     username: string | null;
     full_name: string | null;
@@ -41,6 +46,21 @@ function timeAgo(iso: string | null) {
   if (d < 7) return `${d}d`;
   return new Date(iso).toLocaleDateString();
 }
+
+const THEME_CLASS: Record<string, string> = {
+  sunset: "bg-gradient-to-br from-orange-400 via-pink-500 to-rose-600 text-white",
+  ocean: "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 text-white",
+  forest: "bg-gradient-to-br from-emerald-400 via-green-600 to-teal-700 text-white",
+  berry: "bg-gradient-to-br from-fuchsia-500 via-purple-600 to-violet-700 text-white",
+  gold: "bg-gradient-to-br from-yellow-300 via-amber-500 to-orange-600 text-white",
+  night: "bg-gradient-to-br from-slate-800 via-slate-900 to-black text-white",
+  candy: "bg-gradient-to-br from-pink-300 via-fuchsia-400 to-purple-500 text-white",
+  mint: "bg-gradient-to-br from-teal-300 via-emerald-400 to-cyan-500 text-white",
+  coral: "bg-gradient-to-r from-rose-400 to-orange-400 text-white",
+  red: "bg-red-600 text-white",
+  blue: "bg-blue-600 text-white",
+  black: "bg-black text-white",
+};
 
 export function PostCard({
   post,
@@ -83,6 +103,18 @@ export function PostCard({
 
   const name = post.author?.full_name || post.author?.username || "Someone";
   const handle = post.author?.username ? `@${post.author.username}` : "";
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const themeCls = post.theme ? THEME_CLASS[post.theme] : "";
+  const hasMedia = !!(post.media_urls && post.media_urls.length);
+  const useTheme = !!themeCls && !hasMedia && (post.content?.length ?? 0) <= 150;
+
+  function toggleSong() {
+    if (!post.song?.preview) return;
+    if (!audioRef.current) audioRef.current = new Audio(post.song.preview);
+    if (playing) { audioRef.current.pause(); setPlaying(false); }
+    else { audioRef.current.play().catch(() => {}); setPlaying(true); audioRef.current.onended = () => setPlaying(false); }
+  }
 
   async function deletePost() {
     if (!isOwner) return;
@@ -133,9 +165,12 @@ export function PostCard({
           params={{ username: post.author?.username ?? "" }}
           className="min-w-0 flex-1"
         >
-          <p className="font-semibold text-sm truncate">{name}</p>
+          <p className="font-semibold text-sm truncate">
+            {name}
+            {post.feeling && <span className="font-normal text-muted-foreground"> is feeling {post.feeling.emoji} {post.feeling.label}</span>}
+          </p>
           <p className="text-xs text-muted-foreground truncate">
-            {handle} · {timeAgo(post.created_at)}
+            {handle} · {timeAgo(post.created_at)}{post.location ? ` · 📍 ${post.location.name.split(",")[0]}` : ""}
           </p>
         </Link>
         <DropdownMenu>
@@ -184,10 +219,31 @@ export function PostCard({
         </DropdownMenu>
       </header>
 
-      {post.content && (
+      {post.content && !useTheme && (
         <p className="px-4 pb-3 text-[15px] leading-relaxed whitespace-pre-wrap break-words">
           <RichText text={post.content} />
         </p>
+      )}
+
+      {useTheme && post.content && (
+        <div className={`mx-4 mb-3 rounded-xl p-8 min-h-[220px] grid place-items-center ${themeCls}`}>
+          <p className="text-center text-2xl font-bold whitespace-pre-wrap break-words">{post.content}</p>
+        </div>
+      )}
+
+      {post.song && (
+        <div className="mx-4 mb-3 flex items-center gap-3 p-2 rounded-lg bg-muted/60">
+          <img src={post.song.artwork} alt="" className="size-11 rounded" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold truncate">{post.song.title}</p>
+            <p className="text-xs text-muted-foreground truncate">{post.song.artist}</p>
+          </div>
+          {post.song.preview && (
+            <button onClick={toggleSong} className="size-9 rounded-full brand-gradient text-white grid place-items-center">
+              {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
+            </button>
+          )}
+        </div>
       )}
 
       {post.media_urls && post.media_urls.length > 0 && (

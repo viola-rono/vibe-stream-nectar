@@ -487,15 +487,20 @@ export type Database = {
           comments_count: number | null
           content: string | null
           created_at: string | null
+          feeling: Json | null
           hashtags: string[] | null
           id: string
           likes_count: number | null
+          location: Json | null
           media_type: string | null
           media_urls: string[] | null
           saves_count: number | null
           scheduled_at: string | null
           shares_count: number | null
+          song: Json | null
           status: string | null
+          tagged_users: string[] | null
+          theme: string | null
           updated_at: string | null
           user_id: string
           views_count: number | null
@@ -505,15 +510,20 @@ export type Database = {
           comments_count?: number | null
           content?: string | null
           created_at?: string | null
+          feeling?: Json | null
           hashtags?: string[] | null
           id?: string
           likes_count?: number | null
+          location?: Json | null
           media_type?: string | null
           media_urls?: string[] | null
           saves_count?: number | null
           scheduled_at?: string | null
           shares_count?: number | null
+          song?: Json | null
           status?: string | null
+          tagged_users?: string[] | null
+          theme?: string | null
           updated_at?: string | null
           user_id: string
           views_count?: number | null
@@ -523,15 +533,20 @@ export type Database = {
           comments_count?: number | null
           content?: string | null
           created_at?: string | null
+          feeling?: Json | null
           hashtags?: string[] | null
           id?: string
           likes_count?: number | null
+          location?: Json | null
           media_type?: string | null
           media_urls?: string[] | null
           saves_count?: number | null
           scheduled_at?: string | null
           shares_count?: number | null
+          song?: Json | null
           status?: string | null
+          tagged_users?: string[] | null
+          theme?: string | null
           updated_at?: string | null
           user_id?: string
           views_count?: number | null
