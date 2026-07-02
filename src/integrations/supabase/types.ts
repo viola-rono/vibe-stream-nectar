@@ -687,6 +687,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_or_create_direct_conversation: {
+        Args: { _other: string }
+        Returns: string
+      }
       is_conversation_participant: {
         Args: { _conv: string; _user: string }
         Returns: boolean
