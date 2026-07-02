@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/home")({
 async function fetchFeed(): Promise<FeedPost[]> {
   const { data: posts, error } = await supabase
     .from("posts")
-    .select("id,user_id,content,media_urls,created_at,likes_count,comments_count")
+    .select("id,user_id,content,media_urls,created_at,likes_count,comments_count,feeling,location,song,theme,hashtags")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw error;
