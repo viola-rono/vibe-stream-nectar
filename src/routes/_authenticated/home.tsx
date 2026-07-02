@@ -35,7 +35,7 @@ async function fetchFeed(): Promise<FeedPost[]> {
       ]),
     );
   }
-  return rows.map((r) => ({ ...r, author: authorsById.get(r.user_id) ?? null }));
+  return rows.map((r) => ({ ...(r as any), author: authorsById.get(r.user_id) ?? null })) as FeedPost[];
 }
 
 function HomePage() {
