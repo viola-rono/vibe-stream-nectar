@@ -159,7 +159,9 @@ export type Database = {
           id: string
           last_message: string | null
           last_message_at: string | null
+          listing_id: string | null
           name: string | null
+          source: string
           type: string | null
         }
         Insert: {
@@ -168,7 +170,9 @@ export type Database = {
           id?: string
           last_message?: string | null
           last_message_at?: string | null
+          listing_id?: string | null
           name?: string | null
+          source?: string
           type?: string | null
         }
         Update: {
@@ -177,10 +181,20 @@ export type Database = {
           id?: string
           last_message?: string | null
           last_message_at?: string | null
+          listing_id?: string | null
           name?: string | null
+          source?: string
           type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversations_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       creator_subscriptions: {
         Row: {
@@ -278,6 +292,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      listings: {
+        Row: {
+          category: string | null
+          condition: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          location: string | null
+          media_urls: string[]
+          price_cents: number
+          seller_id: string
+          status: string
+          title: string
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          category?: string | null
+          condition?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          media_urls?: string[]
+          price_cents?: number
+          seller_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          category?: string | null
+          condition?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          media_urls?: string[]
+          price_cents?: number
+          seller_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -485,6 +550,9 @@ export type Database = {
           id: string
           is_verified: boolean | null
           location: string | null
+          marketplace_suspended: boolean
+          marketplace_suspended_until: string | null
+          marketplace_suspension_reason: string | null
           monetization_enabled: boolean | null
           post_count: number
           subscription_tier: string
@@ -502,6 +570,9 @@ export type Database = {
           id: string
           is_verified?: boolean | null
           location?: string | null
+          marketplace_suspended?: boolean
+          marketplace_suspended_until?: string | null
+          marketplace_suspension_reason?: string | null
           monetization_enabled?: boolean | null
           post_count?: number
           subscription_tier?: string
@@ -519,6 +590,9 @@ export type Database = {
           id?: string
           is_verified?: boolean | null
           location?: string | null
+          marketplace_suspended?: boolean
+          marketplace_suspended_until?: string | null
+          marketplace_suspension_reason?: string | null
           monetization_enabled?: boolean | null
           post_count?: number
           subscription_tier?: string
