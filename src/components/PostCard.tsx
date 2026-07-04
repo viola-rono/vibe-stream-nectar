@@ -1,6 +1,6 @@
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, Link as LinkIcon, Flag, EyeOff, BellOff, MapPin, Music, Play, Pause } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, Link as LinkIcon, Flag, EyeOff, BellOff, MapPin, Music, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -105,16 +105,67 @@ export function PostCard({
   const handle = post.author?.username ? `@${post.author.username}` : "";
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const cardRef = useRef<HTMLElement | null>(null);
   const themeCls = post.theme ? THEME_CLASS[post.theme] : "";
   const hasMedia = !!(post.media_urls && post.media_urls.length);
   const useTheme = !!themeCls && !hasMedia && (post.content?.length ?? 0) <= 150;
 
-  function toggleSong() {
-    if (!post.song?.preview) return;
-    if (!audioRef.current) audioRef.current = new Audio(post.song.preview);
-    if (playing) { audioRef.current.pause(); setPlaying(false); }
-    else { audioRef.current.play().catch(() => {}); setPlaying(true); audioRef.current.onended = () => setPlaying(false); }
+  function ensureAudio() {
+    if (!post.song?.preview) return null;
+    if (!audioRef.current) {
+      audioRef.current = new Audio(post.song.preview);
+      audioRef.current.loop = true;
+      audioRef.current.muted = true;
+      audioRef.current.onended = () => setPlaying(false);
+    }
+    return audioRef.current;
   }
+
+  function toggleSong() {
+    const a = ensureAudio();
+    if (!a) return;
+    if (playing) { a.pause(); setPlaying(false); }
+    else {
+      a.muted = muted;
+      a.play().catch(() => {});
+      setPlaying(true);
+    }
+  }
+
+  function toggleMute() {
+    const a = ensureAudio();
+    if (!a) return;
+    const next = !muted;
+    setMuted(next);
+    a.muted = next;
+  }
+
+  // Muted autoplay when the card scrolls into view.
+  useEffect(() => {
+    if (!post.song?.preview || !cardRef.current) return;
+    const el = cardRef.current;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        const a = ensureAudio();
+        if (!a) return;
+        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+          a.muted = muted;
+          a.play().then(() => setPlaying(true)).catch(() => {});
+        } else {
+          a.pause();
+          setPlaying(false);
+        }
+      },
+      { threshold: [0, 0.6, 1] },
+    );
+    obs.observe(el);
+    return () => {
+      obs.disconnect();
+      audioRef.current?.pause();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.song?.preview]);
 
   async function deletePost() {
     if (!isOwner) return;
@@ -143,7 +194,7 @@ export function PostCard({
   if (hidden) return null;
 
   return (
-    <article className="card-soft mx-4 my-3 overflow-hidden">
+    <article ref={cardRef} className="card-soft mx-4 my-3 overflow-hidden">
       <header className="flex items-center gap-3 p-4">
         <Link
           to="/u/$username"
@@ -239,9 +290,18 @@ export function PostCard({
             <p className="text-xs text-muted-foreground truncate">{post.song.artist}</p>
           </div>
           {post.song.preview && (
-            <button onClick={toggleSong} className="size-9 rounded-full brand-gradient text-white grid place-items-center">
-              {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={toggleMute}
+                aria-label={muted ? "Unmute" : "Mute"}
+                className="size-9 rounded-full grid place-items-center hover:bg-muted transition"
+              >
+                {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+              </button>
+              <button onClick={toggleSong} className="size-9 rounded-full brand-gradient text-white grid place-items-center">
+                {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
+              </button>
+            </div>
           )}
         </div>
       )}
