@@ -344,6 +344,48 @@ export type Database = {
         }
         Relationships: []
       }
+      login_approval_requests: {
+        Row: {
+          approval_token: string | null
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          ip: string | null
+          location: string | null
+          resolved_at: string | null
+          status: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          approval_token?: string | null
+          code: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip?: string | null
+          location?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          approval_token?: string | null
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip?: string | null
+          location?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string | null
