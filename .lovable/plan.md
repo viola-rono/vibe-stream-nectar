@@ -1,44 +1,67 @@
-Building this in 3 phases across multiple turns. This turn = Phase 1.
+# Phase 4 — Find Your Account & Device-Approval Login
 
-## Phase 1 (this turn) — Profile + Social Graph
+## 1. Find Your Account (login flow)
 
-**New routes**
-- `/u/$username` — public profile view matching screenshot: gradient header with @username, avatar, full name, bio, location, joined date, stat tiles (Posts / Followers / Following), Edit Profile + Settings buttons (own profile) OR Follow / Message (other users), 3-tab strip (Posts / Reels / Saved), 3-column posts grid (clickable).
-- `/u/$username/followers` and `/u/$username/following` — searchable user lists with Follow/Unfollow buttons.
-- `/p/$postId` — full post detail page (placeholder for Phase 2 comments).
-- `/settings` — moved from hub; full settings shell (account, privacy, notifications, appearance, sign out).
-- Update `/explore` — grid of all registered users with Follow buttons + search.
-- Update `/hub` and bottom nav — "Profile" tab links to `/u/<myUsername>`.
+Rework `/auth` sign-in into a 3-step flow:
 
-**Components**
-- `UserListItem` (avatar, name, @username, bio snippet, Follow button).
-- `PostGridTile` (square thumbnail, multi-image badge).
-- `FollowButton` (optimistic toggle via `follows` table).
+1. **Search step** — user types a username or name. Debounced query hits `profiles` (public safe columns: `username`, `full_name`, `avatar_url`). Show matching cards.
+2. **Pick account** — clicking a result opens a modal showing that profile (avatar, name, @handle). Two buttons: **"This is me, continue"** and **"Not my account"**.
+3. **Password step** — enter password for the selected account's email. Email is not shown (privacy); we resolve it server-side via a `createServerFn` that looks up the email from `user_id` using `supabaseAdmin`.
 
-**Data**
-- Profile fetched by username (not just id).
-- Stats from `profiles.post_count/follower_count/following_count` (existing trigger-maintained columns).
-- Posts grid fetched by `user_id` with media.
-- All registered users for Explore — paginated list.
+Sign-up flow stays as-is on a separate tab.
 
-**No DB changes** — existing schema (profiles, posts, follows) is sufficient.
+## 2. Device-Approval Login (Facebook-style)
 
-## Phase 2 (next turn) — Post Interactions
-- Post detail with photo lightbox (click image to zoom).
-- Threaded comments with likes (`comments` table — add `parent_id` migration).
-- @mention autocomplete (searches profiles by username as you type).
-- Hashtag linking → `/tag/$tag` route.
-- Comment like table (new mini-table or reuse `likes` with `target_type`).
+When someone submits the password step from an unrecognized device:
 
-## Phase 3 — Composer Power-ups
-- Feeling/Activity picker (curated list with emojis).
-- Location autocomplete via OpenStreetMap Nominatim (free, no key).
-- Tag People — search followers/following.
-- Add Song — iTunes Search API (free, 30s previews).
-- Hashtags input chips.
-- Facebook-style colored post themes for short text posts (≤130 chars, no media) — gradient backgrounds stored in `background_color` column (already exists).
+- **New device (Device B)** — after correct password, we do NOT complete sign-in. Instead we create a `login_approval_requests` row (status `pending`, 5-min expiry, IP, user-agent, city best-effort). A full-screen modal shows: "Waiting for approval from your other device…" with a live spinner and a 6-digit code. Realtime subscription listens for status changes.
+- **Existing device (Device A)** — a realtime subscription on the signed-in session listens for new pending requests for that user. When one arrives, a full-screen `<Dialog>` takes over showing device info + code and three buttons:
+  - **"Yes, it's me"** → sets status `approved`
+  - **"Not me, block it"** → sets status `blocked`, revokes all sessions server-side, triggers a security-alert email
+  - **Ignore** → auto-expires after 5 min
+- When Device B sees `approved`, it calls a server fn that mints a short-lived one-time token; Device B exchanges it for a real session via `signInWithPassword` (the password was already validated) and navigates to `/home`.
 
-## Out of scope
-- Stories ring + Highlights, Reels feed, Shop, Analytics tabs, Premium upsell card, link-in-bio rows — the screenshot has them but they're Phase 4+. Phase 1 ships the structure; those become "Coming soon" tiles.
+### Not-me action
+- Server fn (admin) calls `auth.admin.signOut(user_id, 'global')`, marks request `blocked`, and sends a security email via **Lovable Emails** (auth email infra) with IP, UA, timestamp, and a "Reset password" link.
 
-Starting Phase 1 implementation immediately after approval.
+## 3. Database (migration)
+
+```sql
+create table public.login_approval_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  code text not null,
+  status text not null default 'pending', -- pending|approved|blocked|expired
+  ip text, user_agent text, location text,
+  approval_token text unique,             -- one-time, set on approve
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default now() + interval '5 minutes',
+  resolved_at timestamptz
+);
+-- grants, RLS: user can SELECT their own rows; all writes via server fns (service role).
+-- Add table to supabase_realtime publication.
+```
+
+## 4. Server functions (`src/lib/auth-approval.functions.ts`)
+
+- `searchAccounts({ q })` — public, returns up to 5 profiles (`username`, `full_name`, `avatar_url`, `id`). No email.
+- `startLoginApproval({ userId, password })` — verifies password by attempting sign-in with a scratch client, immediately signs that scratch client out, then creates a pending request; returns `{ requestId, code }`.
+- `resolveApproval({ requestId, action })` — requires auth as the target user (via `requireSupabaseAuth`); sets status and, on block, revokes sessions + sends alert email.
+- `exchangeApproval({ requestId, approvalToken })` — returns a magic-link/OTP the client uses to complete sign-in, OR simply returns `{ ok: true }` after which the client re-runs `signInWithPassword` (simpler; password is held only in memory on Device B).
+
+## 5. Frontend
+
+- `src/routes/auth.tsx` — rewrite sign-in into stepped UI.
+- `src/components/DeviceApprovalWatcher.tsx` — mounted in `_authenticated/route.tsx`; subscribes to `login_approval_requests` for the current user; renders full-screen approval `<Dialog>`.
+- `src/components/AwaitingApprovalScreen.tsx` — full-screen "waiting" UI on Device B with realtime status.
+
+## 6. Security alert email
+
+Uses the existing Lovable Emails auth infra (`email_domain--scaffold_auth_email_templates` if not scaffolded). Called from `resolveApproval` on `blocked`.
+
+## Notes
+
+- Password is never stored server-side beyond the sign-in verification attempt.
+- Codes are 6 digits, shown on both devices for visual match (defense against phishing).
+- Requests auto-expire; a Postgres check + `expires_at` filter makes stale requests inert without a cron.
+- If a user has no other signed-in device, the waiting screen offers a fallback: "No other device? Use email code" (email OTP via `supabase.auth.signInWithOtp`).
